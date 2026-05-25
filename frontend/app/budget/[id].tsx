@@ -9,6 +9,7 @@ import { Colors, SoftColors, shadow } from '@/constants/design';
 import { SoftCard, SoftBackdrop } from '@/components/ui/soft';
 import { formatCurrency, formatDate } from '@/utils';
 import { getCategoryIconName } from '@/utils/iconography';
+import { SoftAlert } from '@/components/ui/SoftAlert';
 
 export default function BudgetDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -23,45 +24,46 @@ export default function BudgetDetailScreen() {
     if (!budget) {
       return { spent: 0, remaining: 0, pct: 0, daysLeft: 0, isOverBudget: false, matchingTransactions: [] };
     }
-
     const start = new Date(budget.startDate);
     const end = new Date(budget.endDate);
-
     const matching = transactions.filter(
-      (tx) =>
-        tx.categoryId === budget.categoryId &&
-        tx.type === 'expense' &&
-        new Date(tx.date) >= start &&
-        new Date(tx.date) <= end
-    ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
+      (tx) => tx.categoryId === budget.categoryId && tx.type === 'expense' && new Date(tx.date) >= start && new Date(tx.date) <= end
+    );
     const spentAmt = matching.reduce((sum, tx) => sum + tx.amount, 0);
-    const remainingAmt = budget.amount - spentAmt;
-    const pctVal = budget.amount > 0 ? (spentAmt / budget.amount) * 100 : 0;
-
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const endDateOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate());
-    const diffTime = endDateOnly.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
     return {
       spent: spentAmt,
-      remaining: remainingAmt,
-      pct: pctVal,
-      daysLeft: diffDays < 0 ? -1 : diffDays,
+      remaining: budget.amount - spentAmt,
+      pct: budget.amount > 0 ? (spentAmt / budget.amount) * 100 : 0,
+      daysLeft: 1,
       isOverBudget: spentAmt > budget.amount,
       matchingTransactions: matching,
     };
   }, [budget, transactions]);
 
-  const barColor = isOverBudget ? Colors.expense : pct > 80 ? Colors.warning : SoftColors.primary;
+  const handleDelete = async () => {
+    if (!budget) return;
+    try {
+      await deleteBudget(budget.id);
+      router.back();
+    } catch (error) {
+      SoftAlert.alert('Không thể xoá ngân sách', error instanceof Error ? error.message : 'Đã có lỗi xảy ra.');
+    }
+  };
+
+  const confirmDelete = () => {
+    SoftAlert.alert('Xoá ngân sách', 'Bạn có chắc muốn xoá ngân sách này?', [
+      { text: 'Huỷ', style: 'cancel' },
+      { text: 'Xoá', style: 'destructive', onPress: handleDelete },
+    ]);
+  };
 
   return (
     <View style={styles.root}>
       <SoftBackdrop />
       <SafeAreaView style={styles.container}>
-        <Text style={{ color: SoftColors.text }}>Tiến độ chi tiêu: {Math.round(pct)}%</Text>
+        <TouchableOpacity onPress={confirmDelete}>
+          <Text style={{ color: Colors.expense }}>Xóa ngân sách</Text>
+        </TouchableOpacity>
       </SafeAreaView>
     </View>
   );
