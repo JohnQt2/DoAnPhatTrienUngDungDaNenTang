@@ -57,13 +57,31 @@ export default function BudgetDetailScreen() {
     ]);
   };
 
+  if (!budget) {
+    return (
+      <View style={styles.root}>
+        <SoftBackdrop />
+        <SafeAreaView style={styles.container}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.headerIcon}>
+              <Ionicons name="arrow-back" size={24} color={SoftColors.text} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Lỗi</Text>
+            <View style={{ width: 40 }} />
+          </View>
+          <Text style={{ textAlign: 'center', marginTop: 50, color: SoftColors.text }}>
+            Ngân sách không tồn tại hoặc đã bị xóa.
+          </Text>
+        </SafeAreaView>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.root}>
       <SoftBackdrop />
       <SafeAreaView style={styles.container}>
-        <TouchableOpacity onPress={confirmDelete}>
-          <Text style={{ color: Colors.expense }}>Xóa ngân sách</Text>
-        </TouchableOpacity>
+        <Text style={{ color: SoftColors.text }}>Giao diện hợp lệ</Text>
       </SafeAreaView>
     </View>
   );
@@ -72,4 +90,7 @@ export default function BudgetDetailScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: SoftColors.pageBase },
   container: { flex: 1, paddingHorizontal: 18 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 },
+  headerIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { fontSize: 20, fontWeight: '800', color: SoftColors.text },
 });
