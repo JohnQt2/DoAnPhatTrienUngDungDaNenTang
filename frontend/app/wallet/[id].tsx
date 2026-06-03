@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SoftAlert } from '@/components/ui/SoftAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -16,13 +17,15 @@ import { TransactionItem } from '@/components/TransactionItem';
 
 export default function WalletDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { wallets, transactions, getCategoryById, settings } = useStore();
+  const { wallets, transactions, getCategoryById } = useStore();
   const { deleteWallet } = useMutations();
 
   const wallet = wallets.find((item) => item.id === id);
 
   const { monthIncome, monthExpense } = useWalletStats(id);
   
+  // Lọc giao dịch thuộc ví này, bao gồm cả giao dịch chuyển tiền đến (toWalletId)
+  // Sắp xếp mới nhất lên đầu
   const walletTransactions = useMemo(
     () =>
       transactions
@@ -31,6 +34,7 @@ export default function WalletDetailScreen() {
     [transactions, id]
   );
 
+  // Guard: ví bị xóa hoặc id không hợp lệ — silent null render (caller sẽ điều hướng)
   if (!wallet) {
     return null;
   }
@@ -40,15 +44,16 @@ export default function WalletDetailScreen() {
       await deleteWallet(id);
       router.back();
     } catch (error) {
-      Alert.alert(
+      SoftAlert.alert(
         'Không thể xoá ví',
         error instanceof Error ? error.message : 'Đã có lỗi xảy ra.'
       );
     }
   };
 
+  // Xác nhận trước khi xóa ví — cảnh báo rõ rằng toàn bộ giao dịch liên quan cũng mất
   const confirmDelete = () => {
-    Alert.alert(
+    SoftAlert.alert(
       'Xoá ví',
       `Bạn có chắc muốn xoá ví "${wallet.name}"? Tất cả giao dịch liên quan cũng sẽ bị xoá.`,
       [
@@ -140,8 +145,8 @@ export default function WalletDetailScreen() {
                     wallet={sourceWallet}
                     destWallet={destWallet}
                     category={category}
-                    settings={settings}
                     isLast={index === walletTransactions.length - 1}
+                    // perspectiveWalletId giúp TransactionItem hiển thị đúng hướng tiền (vào/ra) cho giao dịch chuyển
                     perspectiveWalletId={id}
                     onPress={() => router.push(`/transaction/${transaction.id}`)}
                   />
