@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -10,30 +9,34 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SoftAlert } from '@/components/ui/SoftAlert';
 import { Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useStore } from '@/store/app-store';
-import { Colors , SoftColors, shadow } from '@/constants/design';
+import { SoftColors, shadow } from '@/constants/design';
 
 import { GlowButton, SoftBackdrop, SoftCard, softInputStyles } from '@/components/ui/soft';
 
 export default function LoginScreen() {
+  // Chỉ lấy signIn và isBusy từ store để tránh re-render không cần thiết khi state khác thay đổi
   const signIn = useStore((state) => state.signIn);
   const isBusy = useStore((state) => state.isBusy);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
+  // Validate phía client trước khi gọi API — giảm round-trip không cần thiết
   const handleSubmit = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Thiếu thông tin', 'Vui lòng nhập email và mật khẩu.');
+      SoftAlert.alert('Thiếu thông tin', 'Vui lòng nhập email và mật khẩu.');
       return;
     }
 
     try {
+      // signIn xử lý lưu token và hydrate store; sau khi thành công Expo Router tự redirect
       await signIn(email.trim(), password);
     } catch (error) {
-      Alert.alert('Đăng nhập thất bại', error instanceof Error ? error.message : 'Đã có lỗi xảy ra.');
+      SoftAlert.alert('Đăng nhập thất bại', error instanceof Error ? error.message : 'Đã có lỗi xảy ra.');
     }
   };
 
@@ -41,10 +44,12 @@ export default function LoginScreen() {
     <View style={styles.container}>
       <SoftBackdrop />
       <SafeAreaView style={styles.safeArea}>
+        {/* KeyboardAvoidingView: chỉ dùng 'padding' trên iOS; Android tự xử lý qua windowSoftInputMode */}
         <KeyboardAvoidingView
           style={styles.keyboard}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
+          {/* keyboardShouldPersistTaps="handled": cho phép nhấn nút khi bàn phím đang mở */}
           <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.content}
@@ -82,6 +87,7 @@ export default function LoginScreen() {
                 </TouchableOpacity>
               </Link>
 
+              {/* isBusy: vô hiệu hóa nút và đổi nhãn để tránh double-submit */}
               <GlowButton
                 label={isBusy ? 'Đang đăng nhập...' : 'Đăng nhập'}
                 onPress={() => void handleSubmit()}
@@ -96,17 +102,7 @@ export default function LoginScreen() {
               </Link>
             </SoftCard>
 
-            <View style={styles.socialWrap}>
-              <Text style={styles.socialLabel}>Hoặc đăng nhập bằng</Text>
-              <View style={styles.socialRow}>
-                <TouchableOpacity activeOpacity={0.82} style={styles.socialButton}>
-                  <Ionicons name="logo-google" size={22} color="#4285F4" />
-                </TouchableOpacity>
-                <TouchableOpacity activeOpacity={0.82} style={styles.socialButton}>
-                  <Ionicons name="logo-apple" size={22} color={Colors.text} />
-                </TouchableOpacity>
-              </View>
-            </View>
+
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -114,6 +110,10 @@ export default function LoginScreen() {
   );
 }
 
+/**
+ * Input có icon bên trái — dùng rest props spread để truyền toàn bộ TextInput props
+ * mà không cần khai báo lại từng prop (placeholder, secureTextEntry, v.v.).
+ */
 function AuthInput({
   icon,
   ...props
@@ -221,26 +221,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
   },
-  socialWrap: {
-    marginTop: 28,
-    alignItems: 'center',
-  },
-  socialLabel: {
-    fontSize: 14,
-    color: SoftColors.text,
-    marginBottom: 14,
-  },
-  socialRow: {
-    flexDirection: 'row',
-    gap: 14,
-  },
-  socialButton: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: 'rgba(255,255,255,0.84)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadow.card,
-  },
 });
+
