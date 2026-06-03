@@ -9,16 +9,16 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Image,
   Modal,
-  Alert,
 } from 'react-native';
+import { SoftAlert } from '@/components/ui/SoftAlert';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStore } from '@/store/app-store';
 import { Colors, SoftColors, shadow } from '@/constants/design';
 import { ChatMessage } from '@/store/types';
-import * as ImagePicker from 'expo-image-picker';
+
 import { Stack, router } from 'expo-router';
 import { api } from '@/utils/api';
 
@@ -42,6 +42,7 @@ export default function AIChatScreen() {
   const [showHistory, setShowHistory] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
+  // Tải danh sách session khi vào màn hình
   useEffect(() => {
     listSessions();
   }, [listSessions]);
@@ -49,22 +50,14 @@ export default function AIChatScreen() {
   const handleSend = async () => {
     if (!inputText.trim()) return;
     const msg = inputText.trim();
+    // Xóa input ngay để UX mượt hơn, không chờ AI phản hồi
     setInputText('');
     await sendChatMessage(msg);
   };
 
-  const handlePickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      quality: 0.8,
-    });
 
-    if (!result.canceled) {
-      const uri = result.assets[0].uri;
-      await sendChatMessage('Quét hóa đơn này giúp tôi', uri);
-    }
-  };
-
+  // Tự cuộn xuống cuối mỗi khi danh sách tin nhắn thay đổi
+  // Dùng setTimeout 100ms để chờ FlatList render xong rồi mới scroll
   useEffect(() => {
     if (chatMessages.length > 0) {
       setTimeout(() => {
@@ -73,11 +66,13 @@ export default function AIChatScreen() {
     }
   }, [chatMessages]);
 
+  // Chọn một session từ lịch sử và tải lại tin nhắn của session đó
   const selectSession = async (sessionId: string) => {
     await loadSessionMessages(sessionId);
     setShowHistory(false);
   };
 
+  // Nút gửi kiêm nút dừng: nếu AI đang xử lý thì dừng, ngược lại thì gửi tin
   const handlePressSend = () => {
     if (isBusy) {
       stopChat();
@@ -86,8 +81,9 @@ export default function AIChatScreen() {
     }
   };
 
+  // Xác nhận trước khi xóa session — tránh người dùng xóa nhầm
   const handleDeleteSession = (sessionId: string) => {
-    Alert.alert(
+    SoftAlert.alert(
       'Xóa cuộc trò chuyện',
       'Bạn có chắc muốn xóa cuộc trò chuyện này? Toàn bộ tin nhắn sẽ bị mất.',
       [
@@ -101,6 +97,7 @@ export default function AIChatScreen() {
     );
   };
 
+  // Render từng bong bóng tin nhắn — phân biệt bằng role 'user' hay 'assistant'
   const renderMessage = ({ item }: { item: ChatMessage }) => {
     const isUser = item.role === 'user';
     return (
@@ -111,18 +108,7 @@ export default function AIChatScreen() {
           </View>
         )}
         <View style={[styles.messageBubble, isUser ? styles.userBubble : styles.aiBubble]}>
-          {item.fileUri && (
-            <View style={styles.filePreview}>
-              <Image 
-                source={{ 
-                  uri: item.fileUri.startsWith('/uploads/') 
-                    ? `${api.API_BASE_URL}${item.fileUri}` 
-                    : item.fileUri 
-                }} 
-                style={styles.previewImage} 
-              />
-            </View>
-          )}
+
           <Text style={[styles.messageText, isUser ? styles.userText : styles.aiText]}>
             {item.content}
           </Text>
@@ -155,6 +141,7 @@ export default function AIChatScreen() {
             <TouchableOpacity onPress={createNewSession} style={styles.headerIcon}>
               <Ionicons name="add-circle-outline" size={24} color={Colors.primary} />
             </TouchableOpacity>
+            {/* Nút xóa session hiện tại — bị disable khi chưa có session nào */}
             <TouchableOpacity 
               onPress={() => currentSessionId && handleDeleteSession(currentSessionId)} 
               style={[styles.headerIcon, !currentSessionId && { opacity: 0.3 }]}
@@ -183,10 +170,6 @@ export default function AIChatScreen() {
           )}
 
           <View style={[styles.inputContainer, { paddingBottom: Math.max(insets.bottom, 10) }]}>
-            <TouchableOpacity style={styles.toolButton} onPress={handlePickImage}>
-              <Ionicons name="image-outline" size={24} color={Colors.textSecondary} />
-            </TouchableOpacity>
-            
             <View style={styles.inputWrapper}>
               <TextInput
                 style={styles.input}
@@ -199,6 +182,7 @@ export default function AIChatScreen() {
               />
             </View>
 
+            {/* Đổi màu đỏ + icon stop khi AI đang xử lý để user có thể hủy */}
             <TouchableOpacity
               style={[
                 styles.sendButton, 

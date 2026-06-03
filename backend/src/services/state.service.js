@@ -2,68 +2,47 @@ import { randomUUID } from 'node:crypto';
 import { execute, withTransaction } from '../config/database.js';
 import { toMysqlDateTime } from '../utils/datetime.js';
 import { listBudgets } from './budget.service.js';
-import { getSettings } from './settings.service.js';
 import { listTransactions } from './transaction.service.js';
 import { listWallets } from './wallet.service.js';
 
+/**
+ * Lấy toàn bộ dữ liệu của user (ví, giao dịch, ngân sách) trong một lần gọi.
+ * Promise.all chạy song song 3 query để giảm tổng thời gian chờ.
+ * Được dùng làm payload đồng bộ cho frontend offline-first.
+ */
 export async function getStateSnapshot(userId) {
-  const [wallets, transactions, budgets, settings] = await Promise.all([
+  const [wallets, transactions, budgets] = await Promise.all([
     listWallets(userId),
     listTransactions(userId),
     listBudgets(userId),
-    getSettings(userId),
   ]);
 
   return {
     wallets,
     transactions,
     budgets,
-    settings,
   };
 }
 
+/**
+ * Nhập toàn bộ dữ liệu từ snapshot (thường từ client đồng bộ offline).
+ * Chiến lược: xóa sạch dữ liệu cũ rồi insert lại — đơn giản và đảm bảo nhất quán.
+ * withTransaction bao bọc toàn bộ quá trình: nếu bất kỳ bước nào thất bại,
+ * tất cả rollback để tránh trạng thái dữ liệu bị thiếu/lỗi.
+ *
+ * Thứ tự xóa: transactions → budgets → wallets (tránh vi phạm foreign key).
+ * Thứ tự insert: wallets → budgets → transactions (cùng lý do).
+ */
 export async function importStateSnapshot(userId, snapshot) {
   await withTransaction(async (connection) => {
+    // Xóa theo thứ tự phụ thuộc: bảng con trước, bảng cha sau
     await execute(connection, 'DELETE FROM transactions WHERE user_id = :userId', { userId });
     await execute(connection, 'DELETE FROM budgets WHERE user_id = :userId', { userId });
     await execute(connection, 'DELETE FROM wallets WHERE user_id = :userId', { userId });
-    await execute(connection, 'DELETE FROM app_settings WHERE user_id = :userId', { userId });
 
-    const settings = {
-      language: snapshot.settings.language ?? 'vi',
-      theme: snapshot.settings.theme ?? 'light',
-      firstDayOfMonth: snapshot.settings.firstDayOfMonth ?? 1,
-      showBalance: snapshot.settings.showBalance ?? true,
-      biometricEnabled: snapshot.settings.biometricEnabled ?? false,
-    };
-
-    await execute(
-      connection,
-      `
-        INSERT INTO app_settings (
-          user_id,
-          language,
-          theme,
-          first_day_of_month,
-          show_balance,
-          biometric_enabled
-        )
-        VALUES (
-          :userId,
-          :language,
-          :theme,
-          :firstDayOfMonth,
-          :showBalance,
-          :biometricEnabled
-        )
-      `,
-      {
-        ...settings,
-        userId,
-      }
-    );
-
+    // Insert ví trước vì giao dịch và ngân sách tham chiếu đến wallet_id
     for (const wallet of snapshot.wallets) {
+      // Ưu tiên ID từ client để giữ tham chiếu nhất quán với giao dịch/ngân sách
       const id = wallet.id ?? randomUUID();
       const createdAt = toMysqlDateTime(wallet.createdAt ?? new Date());
 
@@ -74,7 +53,6 @@ export async function importStateSnapshot(userId, snapshot) {
             id,
             user_id,
             name,
-            opening_balance,
             balance,
             color,
             icon,
@@ -85,7 +63,6 @@ export async function importStateSnapshot(userId, snapshot) {
             :id,
             :userId,
             :name,
-            :openingBalance,
             :balance,
             :color,
             :icon,
@@ -97,10 +74,10 @@ export async function importStateSnapshot(userId, snapshot) {
           id,
           userId,
           name: wallet.name,
-          openingBalance: wallet.balance,
           balance: wallet.balance,
           color: wallet.color,
           icon: wallet.icon,
+          // Mặc định includeInTotal = true nếu snapshot cũ không có trường này
           includeInTotal: wallet.includeInTotal ?? true,
           createdAt,
         }
@@ -198,5 +175,6 @@ export async function importStateSnapshot(userId, snapshot) {
     }
   });
 
+  // Trả về snapshot mới nhất từ DB sau khi import thành công
   return getStateSnapshot(userId);
 }
