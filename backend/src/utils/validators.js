@@ -35,7 +35,7 @@ function parseString(value, field, options = {}) {
   return normalized;
 }
 
-function parseEmail(value, field, options = {}) {
+export function parseEmail(value, field, options = {}) {
   const normalized = parseString(value, field, options)?.toLowerCase();
 
   if (normalized === undefined) {
