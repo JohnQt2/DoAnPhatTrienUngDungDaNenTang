@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -8,6 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SoftAlert } from '@/components/ui/SoftAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -27,13 +27,14 @@ export default function AddWalletScreen() {
   const [selectedIcon] = useState(WALLET_ICONS[0]);
   const [includeInTotal, setIncludeInTotal] = useState(true);
 
+  // Loại bỏ ký tự không phải số — số dư lưu dạng INTEGER, không có thập phân
   const handleBalanceChange = (text: string) => {
     setBalance(text.replace(/[^0-9]/g, ''));
   };
 
   const handleSave = async () => {
     if (!name.trim()) {
-      Alert.alert('Thiếu tên ví', 'Vui lòng nhập tên ví.');
+      SoftAlert.alert('Thiếu tên ví', 'Vui lòng nhập tên ví.');
       return;
     }
 
@@ -50,7 +51,7 @@ export default function AddWalletScreen() {
       });
       router.back();
     } catch (error) {
-      Alert.alert(
+      SoftAlert.alert(
         'Không thể tạo ví',
         error instanceof Error ? error.message : 'Đã có lỗi xảy ra.'
       );
@@ -70,6 +71,7 @@ export default function AddWalletScreen() {
             <View style={styles.headerSpacer} />
           </View>
 
+          {/* Preview card hiển thị trực tiếp theo màu và nội dung người dùng đang nhập */}
           <LinearGradient colors={[selectedColor, `${selectedColor}CC`]} style={styles.previewCard}>
             <View style={styles.previewTop}>
               <View style={styles.previewIconWrap}>
@@ -136,6 +138,7 @@ export default function AddWalletScreen() {
             </View>
           </SoftCard>
 
+          {/* Toggle "Tính vào tổng số dư" — ví tiết kiệm hay đầu tư có thể không muốn đưa vào tổng */}
           <SoftCard style={styles.toggleCard}>
             <View style={styles.toggleTextWrap}>
               <Text style={styles.toggleTitle}>Tính vào tổng số dư</Text>
