@@ -48,6 +48,10 @@ function parseEmail(value, field, options = {}) {
     throw new HttpError(400, `${field} must be a valid email address.`);
   }
 
+  if (!normalized.endsWith('@gmail.com')) {
+    throw new HttpError(400, `${field} phải là địa chỉ @gmail.com.`);
+  }
+
   return normalized;
 }
 
