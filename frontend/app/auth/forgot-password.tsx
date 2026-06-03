@@ -44,8 +44,8 @@ export default function ForgotPasswordScreen() {
 
   // BƯỚC 2: XÁC MINH MÃ OTP
   const handleVerifyOtp = async () => {
-    if (!otp.trim()) {
-      SoftAlert.alert('Thiếu thông tin', 'Vui lòng nhập mã xác nhận.');
+    if (otp.trim().length < 6) {
+      SoftAlert.alert('Thiếu thông tin', 'Vui lòng nhập đầy đủ 6 chữ số.');
       return;
     }
     try {
