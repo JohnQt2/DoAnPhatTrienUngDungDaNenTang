@@ -63,6 +63,9 @@ export const resetPasswordController = async (request, response) => {
   if (!email || !otp || !newPassword) {
     throw new Error('Vui lòng điền đầy đủ thông tin.');
   }
+  if (newPassword.trim().length < 8) {
+    throw new Error('Mật khẩu phải có ít nhất 8 ký tự.');
+  }
   const validEmail = parseEmail(email, 'email', { maxLength: 191 });
   const result = await resetPassword(validEmail, otp, newPassword);
   sendSuccess(response, result);
