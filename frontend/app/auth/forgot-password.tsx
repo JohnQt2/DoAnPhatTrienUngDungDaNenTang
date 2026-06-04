@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -24,6 +24,32 @@ export default function ForgotPasswordScreen() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [isBusy, setIsBusy] = useState(false);
+  const [resendTimer, setResendTimer] = useState(60);
+
+   useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (step === 2 && resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [step, resendTimer]);
+  const handleResendOtp = async () => {
+    if (resendTimer > 0) return;
+    try {
+      setIsBusy(true);
+      await api.forgotPassword({ email: email.trim() });
+      SoftAlert.alert('Thành công', 'Mã xác nhận mới đã được gửi.');
+      setResendTimer(60);
+    } catch (error: any) {
+      SoftAlert.alert('Lỗi', error.message || 'Không thể gửi lại mã lúc này.');
+    } finally {
+      setIsBusy(false);
+    }
+  };
 
   // BƯỚC 1: GỬI YÊU CẦU ĐẶT LẠI MẬT KHẨU
   const handleRequestOtp = async () => {
@@ -36,6 +62,7 @@ export default function ForgotPasswordScreen() {
       await api.forgotPassword({ email: email.trim() });
       SoftAlert.alert('Thành công', 'Mã xác nhận đã được gửi đến email của bạn.');
       setStep(2);
+      setResendTimer(60);
     } catch (error: any) {
       SoftAlert.alert('Lỗi', error.message || 'Không thể gửi email lúc này.');
     } finally {
@@ -163,6 +190,15 @@ export default function ForgotPasswordScreen() {
                     disabled={isBusy}
                     style={styles.primaryButton} 
                   />
+                  <TouchableOpacity
+                    style={styles.resendButton}
+                    onPress={handleResendOtp}
+                    disabled={resendTimer > 0 || isBusy}
+                  >
+                    <Text style={[styles.resendText, (resendTimer > 0 || isBusy) && styles.resendTextDisabled]}>
+                      {resendTimer > 0 ? `Gửi lại mã sau ${resendTimer}s` : 'Gửi lại mã'}
+                    </Text>
+                  </TouchableOpacity>
                 </>
               )}
 
@@ -236,4 +272,7 @@ const styles = StyleSheet.create({
   formCard: { padding: 20 },
   input: { flex: 1, color: SoftColors.text, fontSize: 16, paddingVertical: 0 },
   primaryButton: { marginTop: 18 },
+  resendButton: { marginTop: 20, alignItems: 'center' },
+  resendText: { color: SoftColors.primaryDark, fontSize: 15, fontWeight: '700' },
+  resendTextDisabled: { color: SoftColors.muted },
 });
