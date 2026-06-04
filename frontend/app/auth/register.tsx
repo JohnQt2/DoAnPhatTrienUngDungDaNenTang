@@ -102,14 +102,14 @@ export default function RegisterScreen() {
                 placeholder="Mật khẩu"
                 value={password}
                 onChangeText={setPassword}
-                secureTextEntry
+                isPassword
               />
               <AuthInput
                 icon="shield-checkmark-outline"
                 placeholder="Nhập lại mật khẩu"
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
-                secureTextEntry
+                isPassword
               />
 
               {/* Checkbox điều khoản — toggle bằng functional update để tránh closure stale state */}
@@ -151,10 +151,14 @@ export default function RegisterScreen() {
  */
 function AuthInput({
   icon,
+  isPassword,
   ...props
 }: {
   icon: React.ComponentProps<typeof Ionicons>['name'];
+  isPassword?: boolean;
 } & React.ComponentProps<typeof TextInput>) {
+  const [showPassword, setShowPassword] = useState(false);
+
   return (
     <View style={styles.inputBlock}>
       <View style={softInputStyles.inputShell}>
@@ -163,10 +167,20 @@ function AuthInput({
         </View>
         <TextInput
           {...props}
+          secureTextEntry={isPassword ? !showPassword : props.secureTextEntry}
           style={styles.input}
           placeholderTextColor={SoftColors.muted}
           selectionColor={SoftColors.primaryDark}
         />
+        {isPassword && (
+          <TouchableOpacity 
+            onPress={() => setShowPassword(!showPassword)}
+            style={{ paddingHorizontal: 12, justifyContent: 'center' }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name={showPassword ? "eye-outline" : "eye-off-outline"} size={20} color={SoftColors.muted} />
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
