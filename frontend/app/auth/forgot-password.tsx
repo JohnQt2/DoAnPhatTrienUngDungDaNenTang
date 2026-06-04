@@ -66,6 +66,10 @@ export default function ForgotPasswordScreen() {
       SoftAlert.alert('Thiếu thông tin', 'Vui lòng nhập mật khẩu mới.');
       return;
     }
+    if (newPassword.trim().length < 8) {
+      SoftAlert.alert('Lỗi', 'Mật khẩu phải có ít nhất 8 ký tự.');
+      return;
+    }
     if (newPassword !== confirmNewPassword) {
       SoftAlert.alert('Lỗi', 'Mật khẩu xác nhận không khớp.');
       return;
