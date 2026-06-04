@@ -22,6 +22,7 @@ export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [isBusy, setIsBusy] = useState(false);
 
   // BƯỚC 1: GỬI YÊU CẦU ĐẶT LẠI MẬT KHẨU
@@ -63,6 +64,10 @@ export default function ForgotPasswordScreen() {
   const handleResetPassword = async () => {
     if (!newPassword.trim()) {
       SoftAlert.alert('Thiếu thông tin', 'Vui lòng nhập mật khẩu mới.');
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      SoftAlert.alert('Lỗi', 'Mật khẩu xác nhận không khớp.');
       return;
     }
     try {
@@ -164,6 +169,13 @@ export default function ForgotPasswordScreen() {
                     placeholder="Nhập mật khẩu mới"
                     value={newPassword}
                     onChangeText={setNewPassword}
+                    secureTextEntry
+                  />
+                  <AuthInput
+                    icon="lock-closed-outline"
+                    placeholder="Xác nhận mật khẩu mới"
+                    value={confirmNewPassword}
+                    onChangeText={setConfirmNewPassword}
                     secureTextEntry
                   />
                   <GlowButton 
