@@ -1,0 +1,23 @@
+{
+  "name": "money-manager-monorepo",
+  "version": "1.0.0",
+  "description": "Money Manager App - Fullstack Project Structure",
+  "scripts": {
+    "start": "npm run frontend:start",
+    "dev": "npm run backend:dev",
+    "frontend:install": "cd frontend && npm install",
+    "frontend:start": "cd frontend && npm run start",
+    "frontend:android": "cd frontend && npm run android",
+    "frontend:ios": "cd frontend && npm run ios",
+    "frontend:web": "cd frontend && npm run web",
+    "frontend:check": "cd frontend && npm run check",
+    "frontend:lint": "cd frontend && npm run lint",
+    "backend:install": "cd backend && npm install",
+    "backend:dev": "cd backend && npm run dev",
+    "backend:start": "cd backend && npm run start",
+    "backend:check": "cd backend && npm run check",
+    "backend:lint": "cd backend && npm run lint",
+    "install:all": "npm run frontend:install && npm run backend:install"
+  },
+  "private": true
+}
