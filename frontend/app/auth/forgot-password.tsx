@@ -27,7 +27,7 @@ export default function ForgotPasswordScreen() {
   const [resendTimer, setResendTimer] = useState(60);
 
    useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     if (step === 2 && resendTimer > 0) {
       interval = setInterval(() => {
         setResendTimer((prev) => prev - 1);
